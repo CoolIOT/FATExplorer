@@ -15,12 +15,14 @@ namespace FATExplorer
          */
         public Partition(byte[] bootSectorBytes, HardDrive hdd, PartitionTableEntry entry)
         {
-            bootSector = new FATBootSector(bootSectorBytes);
+            if (entry.TypeCode == 0x0B || entry.TypeCode == 0x0C)
+            {
+                bootSector = new FATBootSector(bootSectorBytes);
+                //Partition cluster starts immediately following both FAT's
+                clusterBeginLBA = entry.LBA_Begin1 + bootSector.BPB.ReservedSectors + (bootSector.BPB.NumOfFATs * bootSector.BPB.SectorsPerFAT32);
+            }
             this.hdd = hdd;
             this.entry = entry;
-
-            //Partition cluster starts immediately following both FAT's
-            clusterBeginLBA = entry.LBA_Begin1 + bootSector.BPB.ReservedSectors + (bootSector.BPB.NumOfFATs * bootSector.BPB.SectorsPerFAT32);
         }
 
         /*

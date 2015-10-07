@@ -60,13 +60,27 @@ namespace FATExplorer
                     precisePosition = (base.Length - 1) - offset;
                     break;
             }
-            long val = base.Seek(offset, origin);
-            byte[] trash = new byte[offset % 0x400];
-            if (trash.Length != 0)
+            long firstSeek = precisePosition / 0x200;
+            firstSeek *= 0x200;
+            bool backlash = true;
+            if (firstSeek > 0x200)
             {
-                base.Read(trash, 0, trash.Length);
+                firstSeek -= 0x200;
+
             }
-            return val + trash.Length;
+            long secondSeek = precisePosition % 0x200;
+
+            if (backlash)
+            {
+                secondSeek += 0x200;
+            }
+            long val = base.Seek(firstSeek, SeekOrigin.Begin);
+            if (secondSeek > 0)
+            {
+                byte[] trash = new byte[secondSeek];
+                val += base.Read(trash, 0, trash.Length);                
+            }
+            return val;
         }
     }
 }
