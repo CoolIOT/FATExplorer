@@ -9,23 +9,54 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Management;
-using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using Microsoft.Win32.SafeHandles;
 
 namespace FATExplorer
 {
     public partial class FATExplorer : Form
     {
+        //This is supposed to be constant across all FAT32 drives.
         private const int BYTES_PER_SECTOR = 512;
+        List<HardDrive> disks;
 
         public FATExplorer()
         {
             InitializeComponent();
 
-            List<HardDrive> disks = new List<HardDrive>();
+            enumerateFATDevices();
+
+            buildDropDownList();
+
+        }
+
+        public void buildDropDownList()
+        {
+            foreach (HardDrive hdd in disks)
+            {
+                foreach (Partition partition in hdd.Partitions)
+                {
+                    if (partition.Entry.TypeCode == 0x0B || partition.Entry.TypeCode == 0x0C)
+                    {
+                        if (partition.RootDirectory == null)
+                        {
+                            parseDirectoryTree(partition);
+                        }
+                        string volumeId = partition.RootDirectory.LongFilename == null ? partition.RootDirectory.ShortFilename : partition.RootDirectory.LongFilename;
+                        string volumeName = String.Format("{0} Disk: {1} Type: {2}", volumeId, hdd.DeviceId, hdd.Type);
+                        comboBoxPartitions.Items.Add(new ComboBoxItem(volumeName, partition));
+                    }
+                }
+            }
+        }
+
+        public void enumerateFATDevices()
+        {
+            disks = new List<HardDrive>();
 
             ManagementObjectSearcher search = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
 
+            //Iterate over each search result - list of HD's from WMI
             foreach (ManagementObject wmi_HD in search.Get())
             {
                 HardDrive hdd = new HardDrive();
@@ -33,7 +64,8 @@ namespace FATExplorer
                 hdd.Type = wmi_HD["InterfaceType"].ToString();
                 hdd.DeviceId = wmi_HD["DeviceId"].ToString();
 
-                IntPtr handle = Exports.CreateFile(hdd.DeviceId,
+                //Kernel32 CreateFile 
+                SafeFileHandle handle = Exports.CreateFile(hdd.DeviceId,
                                                 (uint)FileAccess.Read,
                                                 (uint)FileShare.None,
                                                 IntPtr.Zero,
@@ -41,89 +73,137 @@ namespace FATExplorer
                                                 Exports.FILE_FLAG_NO_BUFFERING,
                                                 IntPtr.Zero);
 
-                if (handle.ToInt32() == -1)
+                //Occurs when in use or insufficient privileges
+                if (handle.IsInvalid)
                 {
-                    MessageBox.Show("Verify you have run the program or development environment with Administrator Privileges to access the hard disks.");
+                    int error = Marshal.GetLastWin32Error();
+                    MessageBox.Show(this, "Please verify you have Administrator Privileges and disks are not in use.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Stop);
                     continue;
                 }
 
+                //HDD is valid, add to our list
+                disks.Add(hdd);
+
+                //Create extended FileStream from disk handle
                 PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+
+                //Sector buffer
                 byte[] data = new byte[512];
+
+                //Fill Buffer
                 disk.Read(data, 0, 512);
 
+                //Deserialize data into MasterBootRecord
                 hdd.MBR = new MasterBootRecord(data);
 
+                //Iterate over partitions in MBR
                 foreach (PartitionTableEntry entry in hdd.MBR.PartitionTable.Partitions)
                 {
-                    if (!disks.Contains(hdd) && (entry.TypeCode == 0x0B || entry.TypeCode == 0x0C))
-                    {
-                        disks.Add(hdd);
-                    }
-                    if (entry.TypeCode == 0x0B || entry.TypeCode == 0x0C)
-                    {
-                        data = new byte[512];
-                        disk.Seek((long)entry.LBA_Begin1 * BYTES_PER_SECTOR, SeekOrigin.Begin);
-                        disk.Read(data, 0, data.Length);
-                        hdd.Partitions.Add(new Partition(data, hdd, entry));
-                    }
+                    //Clear data buffer
+                    data = new byte[512];
+
+                    //Seek to Partition start (FAT32 boot sector, location given in Partition table entry in Sectors)
+                    disk.Seek((long)entry.LBA_Begin1 * BYTES_PER_SECTOR, SeekOrigin.Begin);
+
+                    //Read FAT32 BootSector - Volume Info
+                    disk.Read(data, 0, data.Length);
+
+                    //Deserialize data into Partition object
+                    hdd.Partitions.Add(new Partition(data, hdd, entry));                    
                 }
-                              
+
+                //Got to remember to close the disk
                 disk.Close();
             }
-            if (disks.Count > 0)
-            {
-                if (disks[0].Partitions.Count > 0)
-                {
-                    IntPtr handle = Exports.CreateFile(disks[0].DeviceId,
-                                                (uint)FileAccess.Read,
-                                                (uint)FileShare.None,
-                                                IntPtr.Zero,
-                                                (uint)FileMode.Open,
-                                                Exports.FILE_FLAG_NO_BUFFERING,
-                                                IntPtr.Zero);
-
-                    PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
-                    disks[0].Partitions[0].ParseDirectoryEntries(disk);
-                    disk.Close();
-                    AddNode(disks[0].Partitions[0].RootDirectory);
-                }
-            }
-
         }
 
-        public void AddNode(DirectoryEntry directoryNode)
+        /*
+         * AddNode - Recurses over some root DirectoryEntry node and add's text to the treeViewDirectory
+         * Returns - TreeNode created at current level of recursion
+         */
+        public TreeNode AddNode(DirectoryEntry directoryNode, TreeNode rootNode)
         {
             TreeNode node = null;
-            if (treeViewDirectory.Nodes.Count == 0)
+            if (rootNode == null)
             {
-                node = new TreeNode(directoryNode.ShortFilename);
-                treeViewDirectory.Nodes.Add(node);
-                treeViewDirectory.SelectedNode = node;
+                node = new TreeNode(directoryNode.LongFilename == null ? directoryNode.ShortFilename : directoryNode.LongFilename);
             }
             else
             {
                 node = new TreeNode(directoryNode.LongFilename == null ? directoryNode.ShortFilename : directoryNode.LongFilename);
-                treeViewDirectory.SelectedNode.Nodes.Add(node);
+                rootNode.Nodes.Add(node);
             }
 
             if (directoryNode.IsDirectory || directoryNode.IsVolumeID)
             {
-                TreeNode tempSelectedNode = treeViewDirectory.SelectedNode;
-                treeViewDirectory.SelectedNode = node;
                 foreach (DirectoryEntry entry in directoryNode.Children)
                 {
-                    AddNode(entry);
+                    AddNode(entry, node);
                 }
-                treeViewDirectory.SelectedNode = tempSelectedNode;
             }
+            return node;
         }
 
-        public T ByteArrayToStructure<T>(byte[] bytes)
+        /*
+         * Event handler when different partition is selected - forces tree refresh
+         */
+        private void comboBoxPartitions_SelectedIndexChanged(object sender, EventArgs e)
         {
-            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            T structure = (T)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(T));
-            handle.Free();
-            return structure;
+            displayPartition(((sender as ComboBox).SelectedItem as ComboBoxItem).Value);
         }
+
+        /*
+         * Event handler for refresh click
+         */
+        private void buttonRefresh_Click(object sender, EventArgs e)
+        {
+            displayPartition((comboBoxPartitions.SelectedItem as ComboBoxItem).Value);
+        }
+
+        /*
+         * parseDirectoryTree - Start directory tree parsing from physical disk
+         * Return - Enumerates partition's rootDirectory structure
+         */
+        private void parseDirectoryTree(Partition partition)
+        {        
+            //Create handle
+            SafeFileHandle handle = Exports.CreateFile(partition.Hdd.DeviceId,
+                            (uint)FileAccess.Read,
+                            (uint)FileShare.None,
+                            IntPtr.Zero,
+                            (uint)FileMode.Open,
+                            Exports.FILE_FLAG_NO_BUFFERING,
+                            IntPtr.Zero);
+
+            //Wrap handle in extended FileStream
+            PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+
+            //Hand off FileStream to workhorse
+            partition.ParseDirectoryEntries(disk);
+
+            //Don't forget to close
+            disk.Close();
+        }
+
+        /*
+         * Rebuild's the treeViewPartitions node structure based on the selected partition's rootDirectory structure 
+         */
+        private void displayPartition(object o)
+        {
+            Partition partition = null;
+            if (o is Partition)
+            {
+                partition = o as Partition;
+            }
+            else
+            {
+                return;
+            } 
+
+            treeViewDirectory.Nodes.Clear();
+            treeViewDirectory.Nodes.Add(AddNode(partition.RootDirectory, null));
+
+        }
+
     }
 }

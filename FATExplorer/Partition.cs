@@ -26,19 +26,11 @@ namespace FATExplorer
             rootDirectory = new DirectoryEntry(data, disk, this);
         }
 
-        public void ReadFAT()
+        public void ReadFAT(PreciseFileStream disk)
         {
             byte[] fatBytes = new byte[(bootSector.BPB.SectorsPerFAT32 * bootSector.BPB.BytesPerSector)];
             uint[] FAT = new uint[fatBytes.Length / 4];
-            IntPtr handle = Exports.CreateFile(hdd.DeviceId,
-                                                (uint)FileAccess.Read,
-                                                (uint)FileShare.None,
-                                                IntPtr.Zero,
-                                                (uint)FileMode.Open,
-                                                Exports.FILE_FLAG_NO_BUFFERING,
-                                                IntPtr.Zero);
 
-            PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
             disk.Seek((long)(bootSector.BPB.BytesPerSector * clusterBeginLBA), SeekOrigin.Begin);
             disk.Read(fatBytes, 0, fatBytes.Length);
 
@@ -46,7 +38,6 @@ namespace FATExplorer
             {
                 FAT[i] = (uint)(fatBytes[i * 4 + 0] << 24 | fatBytes[i * 4 + 1] << 16 | fatBytes[i * 4 + 2] << 8 | fatBytes[i * 4 + 3]);
             }
-            disk.Close();
         }
 
 

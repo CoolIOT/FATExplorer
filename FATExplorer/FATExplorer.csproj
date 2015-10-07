@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BootParameterBlock.cs" />
+    <Compile Include="ComboBoxItem.cs" />
     <Compile Include="DirectoryEntry.cs" />
     <Compile Include="DirectoryEntryType.cs" />
     <Compile Include="ExBootParameterBlock.cs" />

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32.SafeHandles;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,7 +10,7 @@ namespace FATExplorer
 {
     public class PreciseFileStream : FileStream
     {
-        public PreciseFileStream(IntPtr handle, FileAccess access) : base(handle, access)
+        public PreciseFileStream(SafeFileHandle handle, FileAccess access) : base(handle, access)
         {
             position = 0;
         }

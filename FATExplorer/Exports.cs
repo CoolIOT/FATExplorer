@@ -13,7 +13,7 @@ namespace FATExplorer
         [DllImport("kernel32.dll", CharSet = CharSet.Auto,
         CallingConvention = CallingConvention.StdCall,
         SetLastError = true)]
-        public static extern IntPtr CreateFile(
+        public static extern SafeFileHandle CreateFile(
             string lpFileName,
             uint dwDesiredAccess,
             uint dwShareMode,
