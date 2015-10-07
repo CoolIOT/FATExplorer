@@ -61,7 +61,7 @@ namespace FATExplorer
             {
                 HardDrive hdd = new HardDrive();
                 hdd.Model = wmi_HD["Model"].ToString();
-                hdd.Type = wmi_HD["InterfaceType"].ToString();
+                hdd.Type = wmi_HD["InterfaceType"] == null ? "" : wmi_HD["InterfaceType"].ToString();
                 hdd.DeviceId = wmi_HD["DeviceId"].ToString();
 
                 //Kernel32 CreateFile 
