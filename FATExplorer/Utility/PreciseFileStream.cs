@@ -9,35 +9,35 @@ using System.Threading.Tasks;
 namespace FATExplorer
 {
     /*
-     * PreciseFileStream - FileStream extension to provide Byte precise Position and Seek     * 
+     * PreciseFileStream - FileStream extension to provide Byte precise PrecisePosition and Seek     * 
      */
     public class PreciseFileStream : FileStream
     {
         /*
-         * CTOR override to initialize position var
+         * CTOR override to initialize precisePrecisePosition var
          */
         public PreciseFileStream(SafeFileHandle handle, FileAccess access) : base(handle, access)
         {
-            position = 0;
+            precisePosition = 0;
         }
 
         /*
-         * Override base position with this one
+         * Override base precisePrecisePosition with this one
          */
-        private long position;
+        private long precisePosition;
 
-        public override long Position
+        public long PrecisePosition
         {
-            get { return position; }
-            set { position = value; }
+            get { return precisePosition; }
+            set { precisePosition = value; }
         }
 
         /*
-         * Read override to keep position accurate
+         * Read override to keep precisePrecisePosition accurate
          */
         public override int Read(byte[] array, int offset, int count)
         {
-            position += count;
+            precisePosition += count;
             return base.Read(array, offset, count);
         }
 
@@ -49,19 +49,19 @@ namespace FATExplorer
             switch (origin)
             {
                 case SeekOrigin.Current:
-                    position += offset;
+                    precisePosition += offset;
                     break;
 
                 case SeekOrigin.Begin:
-                    position = offset;
+                    precisePosition = offset;
                     break;
 
                 case SeekOrigin.End:
-                    position = (base.Length - 1) - offset;
+                    precisePosition = (base.Length - 1) - offset;
                     break;
             }
             long val = base.Seek(offset, origin);
-            byte[] trash = new byte[offset % 0x100];
+            byte[] trash = new byte[offset % 0x400];
             if (trash.Length != 0)
             {
                 base.Read(trash, 0, trash.Length);

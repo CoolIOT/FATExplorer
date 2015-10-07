@@ -78,7 +78,7 @@ namespace FATExplorer
                 children = new List<DirectoryEntry>();
 
                 //Save old position for recursion
-                long oldPos = disk.Position;
+                long oldPos = disk.PrecisePosition;
 
                 //If this is directory seek to directory entry location
                 if (isDirectory)
