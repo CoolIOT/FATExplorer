@@ -1,0 +1,9 @@
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\bin\Debug\FATExplorer.exe.config
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\bin\Debug\FATExplorer.exe
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\bin\Debug\FATExplorer.pdb
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.csprojResolveAssemblyReference.cache
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.Properties.Resources.resources
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.csproj.GenerateResource.Cache
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.exe
+c:\users\alperst\documents\visual studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.pdb
+C:\Users\alperst\Documents\Visual Studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.FATExplorer.resources

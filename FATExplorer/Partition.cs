@@ -1,0 +1,94 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace FATExplorer
+{
+    public class Partition
+    {
+
+        public Partition(byte[] bootSectorBytes, HardDrive hdd, PartitionTableEntry entry)
+        {
+            bootSector = new FATBootSector(bootSectorBytes);
+            this.hdd = hdd;
+            this.entry = entry;
+            clusterBeginLBA = entry.LBA_Begin1 + bootSector.BPB.ReservedSectors + (bootSector.BPB.NumOfFATs * bootSector.BPB.SectorsPerFAT32);
+        }
+
+        public void ParseDirectoryEntries(PreciseFileStream disk)
+        {
+            disk.Seek((long)this.clusterBeginLBA * BootSector.BPB.BytesPerSector, SeekOrigin.Current);
+            byte[] data = new byte[32];
+            disk.Read(data, 0, data.Length);
+            rootDirectory = new DirectoryEntry(data, disk, this);
+        }
+
+        public void ReadFAT()
+        {
+            byte[] fatBytes = new byte[(bootSector.BPB.SectorsPerFAT32 * bootSector.BPB.BytesPerSector)];
+            uint[] FAT = new uint[fatBytes.Length / 4];
+            IntPtr handle = Exports.CreateFile(hdd.DeviceId,
+                                                (uint)FileAccess.Read,
+                                                (uint)FileShare.None,
+                                                IntPtr.Zero,
+                                                (uint)FileMode.Open,
+                                                Exports.FILE_FLAG_NO_BUFFERING,
+                                                IntPtr.Zero);
+
+            PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+            disk.Seek((long)(bootSector.BPB.BytesPerSector * clusterBeginLBA), SeekOrigin.Begin);
+            disk.Read(fatBytes, 0, fatBytes.Length);
+
+            for (int i = 0; i < FAT.Length; i++)
+            {
+                FAT[i] = (uint)(fatBytes[i * 4 + 0] << 24 | fatBytes[i * 4 + 1] << 16 | fatBytes[i * 4 + 2] << 8 | fatBytes[i * 4 + 3]);
+            }
+            disk.Close();
+        }
+
+
+        private DirectoryEntry rootDirectory;
+
+        public DirectoryEntry RootDirectory
+        {
+            get { return rootDirectory; }
+            set { rootDirectory = value; }
+        }
+
+        private FATBootSector bootSector;
+
+        public FATBootSector BootSector
+        {
+            get { return bootSector; }
+            set { bootSector = value; }
+        }
+
+        private HardDrive hdd;
+
+        public HardDrive Hdd
+        {
+            get { return hdd; }
+            set { hdd = value; }
+        }
+
+        private PartitionTableEntry entry;
+
+        public PartitionTableEntry Entry
+        {
+            get { return entry; }
+            set { entry = value; }
+        }
+
+        private ulong clusterBeginLBA;
+
+        public ulong ClusterBeginLBA
+        {
+            get { return clusterBeginLBA; }
+            set { clusterBeginLBA = value; }
+        }
+        
+    }
+}
