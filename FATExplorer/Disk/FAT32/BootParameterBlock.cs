@@ -6,8 +6,15 @@ using System.Threading.Tasks;
 
 namespace FATExplorer
 {
+    /*
+     * BootParameterBlock struct as class - FAT specific structure
+     * **NOTE** Individual values are Little-Endian but not strings **NOTE**
+     */
     public class BootParameterBlock
     {
+        /*
+         * CTOR - Deserializes FAT Boot Sector into BPB values
+         */
         public BootParameterBlock(byte[] data)
         {
             bytesPerSector = (ushort)(data[0x0C] << 8 | data[0x0B]);
@@ -29,6 +36,8 @@ namespace FATExplorer
             backupBootSec = (ushort)(data[0x33] << 8 | data[0x32]);
 
         }
+
+        #region Properties
 
         private ushort bytesPerSector;
 
@@ -163,5 +172,7 @@ namespace FATExplorer
             get { return reserved2; }
             set { reserved2 = value; }
         }
+
+        #endregion
     }
 }

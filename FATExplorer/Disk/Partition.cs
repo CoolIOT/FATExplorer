@@ -9,23 +9,35 @@ namespace FATExplorer
 {
     public class Partition
     {
-
+        /* 
+         * CTOR - Creates FATBootSector and Calculates Partition Cluster Start LBA
+         * 
+         */
         public Partition(byte[] bootSectorBytes, HardDrive hdd, PartitionTableEntry entry)
         {
             bootSector = new FATBootSector(bootSectorBytes);
             this.hdd = hdd;
             this.entry = entry;
+
+            //Partition cluster starts immediately following both FAT's
             clusterBeginLBA = entry.LBA_Begin1 + bootSector.BPB.ReservedSectors + (bootSector.BPB.NumOfFATs * bootSector.BPB.SectorsPerFAT32);
         }
 
+        /*
+         * ParseDirectoryEntries - Seeks disk to Directory Table start then begins recursive creation         * 
+         */
         public void ParseDirectoryEntries(PreciseFileStream disk)
-        {
+        {            
             disk.Seek((long)this.clusterBeginLBA * BootSector.BPB.BytesPerSector, SeekOrigin.Current);
+
             byte[] data = new byte[32];
             disk.Read(data, 0, data.Length);
             rootDirectory = new DirectoryEntry(data, disk, this);
         }
 
+        /*
+         * ReadFAT - Read FAT table 1 into memory
+         */
         public void ReadFAT(PreciseFileStream disk)
         {
             byte[] fatBytes = new byte[(bootSector.BPB.SectorsPerFAT32 * bootSector.BPB.BytesPerSector)];
@@ -40,6 +52,7 @@ namespace FATExplorer
             }
         }
 
+        #region Properties
 
         private DirectoryEntry rootDirectory;
 
@@ -80,6 +93,8 @@ namespace FATExplorer
             get { return clusterBeginLBA; }
             set { clusterBeginLBA = value; }
         }
-        
+
+        #endregion
+
     }
 }

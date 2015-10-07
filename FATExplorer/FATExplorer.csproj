@@ -45,26 +45,26 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BootParameterBlock.cs" />
-    <Compile Include="ComboBoxItem.cs" />
-    <Compile Include="DirectoryEntry.cs" />
-    <Compile Include="DirectoryEntryType.cs" />
-    <Compile Include="ExBootParameterBlock.cs" />
-    <Compile Include="Exports.cs" />
-    <Compile Include="FATBootSector.cs" />
+    <Compile Include="Disk\FAT32\BootParameterBlock.cs" />
+    <Compile Include="Utility\ComboBoxItem.cs" />
+    <Compile Include="Disk\FAT32\DirectoryEntry.cs" />
+    <Compile Include="Disk\FAT32\DirectoryEntryType.cs" />
+    <Compile Include="Disk\FAT32\ExBootParameterBlock.cs" />
+    <Compile Include="Utility\Exports.cs" />
+    <Compile Include="Disk\FAT32\FATBootSector.cs" />
     <Compile Include="FATExplorer.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="FATExplorer.Designer.cs">
       <DependentUpon>FATExplorer.cs</DependentUpon>
     </Compile>
-    <Compile Include="HardDrive.cs" />
-    <Compile Include="LongFilenameEntry.cs" />
-    <Compile Include="MasterBootRecord.cs" />
-    <Compile Include="Partition.cs" />
-    <Compile Include="PartitionTable.cs" />
-    <Compile Include="PartitionTableEntry.cs" />
-    <Compile Include="PreciseFileStream.cs" />
+    <Compile Include="Disk\HardDrive.cs" />
+    <Compile Include="Disk\FAT32\LongFilenameEntry.cs" />
+    <Compile Include="Disk\MasterBootRecord.cs" />
+    <Compile Include="Disk\Partition.cs" />
+    <Compile Include="Disk\MBR\PartitionTable.cs" />
+    <Compile Include="Disk\MBR\PartitionTableEntry.cs" />
+    <Compile Include="Utility\PreciseFileStream.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="FATExplorer.resx">

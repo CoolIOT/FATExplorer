@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace FATExplorer
 {
+    /*
+     * DirectoryEntryType - Enum of possible directory table entry types
+     */
     public enum DirectoryEntryType
     {
         Normal,

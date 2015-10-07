@@ -6,6 +6,9 @@ using System.Threading.Tasks;
 
 namespace FATExplorer
 {
+    /*
+     * Container class for ComboBox Items
+     */
     public class ComboBoxItem
     {
         public ComboBoxItem(string text, object value)

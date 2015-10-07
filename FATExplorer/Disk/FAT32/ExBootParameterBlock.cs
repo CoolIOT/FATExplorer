@@ -6,8 +6,15 @@ using System.Threading.Tasks;
 
 namespace FATExplorer
 {
+    /*
+     * ExBootParameterBlock (ExtendedBPB) struct as class
+     * **NOTE** Individual values are Little-Endian except strings **NOTE**
+     */
     public class ExBootParameterBlock
     {
+        /*
+         * CTOR - Deserializes FAT Boot Sector into Extended BootParameterBlock
+         */
         public ExBootParameterBlock(byte[] data)
         {
             physicalDriveNum = data[0x40];
@@ -21,6 +28,8 @@ namespace FATExplorer
             sysID = new byte[8];
             Array.Copy(data, 0x52, sysID, 0, sysID.Length);
         }
+
+        #region Properties
 
         private byte physicalDriveNum;
 
@@ -64,5 +73,7 @@ namespace FATExplorer
             get { return sysID; }
             set { sysID = value; }
         }
+
+        #endregion
     }
 }

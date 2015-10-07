@@ -7,8 +7,15 @@ using System.Threading.Tasks;
 
 namespace FATExplorer
 {
+    /*
+     * HardDrive - Basic harddrive information with references to Partitions and MBR
+     * 
+     */
     public class HardDrive
     {
+
+        #region Properties
+
         private string model = null;
         private string type = null;
         private string serialNo = null;
@@ -53,6 +60,8 @@ namespace FATExplorer
             get { return serialNo; }
             set { serialNo = value; }
         }
+
+        #endregion
 
     }
 }

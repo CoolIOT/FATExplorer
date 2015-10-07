@@ -6,6 +6,10 @@ using System.Threading.Tasks;
 
 namespace FATExplorer
 {
+    /*
+     * FATBootSector struct as class 
+     * **NOTE** Individual values are Little-Endian except strings **NOTE**
+     */
     public class FATBootSector
     {
         public FATBootSector(byte[] data)
@@ -24,6 +28,7 @@ namespace FATExplorer
             endMarker = (ushort)(data[0x1FE] << 8 | data[0x1FF]);
         }
 
+        #region Properties
 
         private uint jumpInstruction;
 
@@ -67,5 +72,7 @@ namespace FATExplorer
             get { return endMarker; }
             set { endMarker = value; }
         }
+
+        #endregion
     }
 }
