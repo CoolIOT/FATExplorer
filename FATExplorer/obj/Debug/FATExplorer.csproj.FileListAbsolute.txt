@@ -15,3 +15,4 @@ C:\Users\Travis\Documents\Visual Studio 2013\Projects\FATExplorer\FATExplorer\bi
 C:\Users\Travis\Documents\Visual Studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.FATExplorer.resources
 C:\Users\Travis\Documents\Visual Studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.Properties.Resources.resources
 C:\Users\Travis\Documents\Visual Studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.csproj.GenerateResource.Cache
+C:\Users\Travis\Documents\Visual Studio 2013\Projects\FATExplorer\FATExplorer\obj\Debug\FATExplorer.csprojResolveAssemblyReference.cache

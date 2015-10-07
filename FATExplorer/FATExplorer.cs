@@ -65,7 +65,7 @@ namespace FATExplorer
                 hdd.DeviceId = wmi_HD["DeviceId"].ToString();
 
                 //Kernel32 CreateFile 
-                SafeFileHandle handle = Exports.CreateFile(hdd.DeviceId,
+                SafeFileHandle disk = Exports.CreateFile(hdd.DeviceId,
                                                 (uint)FileAccess.Read,
                                                 (uint)FileShare.None,
                                                 IntPtr.Zero,
@@ -74,7 +74,7 @@ namespace FATExplorer
                                                 IntPtr.Zero);
 
                 //Occurs when in use or insufficient privileges
-                if (handle.IsInvalid)
+                if (disk.IsInvalid)
                 {
                     int error = Marshal.GetLastWin32Error();
                     MessageBox.Show(this, "Please verify you have Administrator Privileges and disks are not in use.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Stop);
@@ -85,13 +85,14 @@ namespace FATExplorer
                 disks.Add(hdd);
 
                 //Create extended FileStream from disk handle
-                PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+                //PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
 
                 //Sector buffer
                 byte[] data = new byte[512];
 
                 //Fill Buffer
-                disk.Read(data, 0, 512);
+                //disk.Read(data, 0, 512);
+                Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
 
                 //Deserialize data into MasterBootRecord
                 hdd.MBR = new MasterBootRecord(data);
@@ -103,11 +104,12 @@ namespace FATExplorer
                     data = new byte[512];
 
                     //Seek to Partition start (FAT32 boot sector, location given in Partition table entry in Sectors)
-                    disk.Seek((long)entry.LBA_Begin1 * BYTES_PER_SECTOR, SeekOrigin.Begin);
+                    //disk.Seek((long)entry.LBA_Begin1 * BYTES_PER_SECTOR, SeekOrigin.Begin);
+                    Exports.Seek(disk, (ulong)entry.LBA_Begin1 * BYTES_PER_SECTOR, Exports.EMoveMethod.Begin);
 
                     //Read FAT32 BootSector - Volume Info
-                    disk.Read(data, 0, data.Length);
-
+                    //disk.Read(data, 0, data.Length);
+                    Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
                     //Deserialize data into Partition object
                     hdd.Partitions.Add(new Partition(data, hdd, entry));                    
                 }
@@ -167,7 +169,7 @@ namespace FATExplorer
         private void parseDirectoryTree(Partition partition)
         {        
             //Create handle
-            SafeFileHandle handle = Exports.CreateFile(partition.Hdd.DeviceId,
+            SafeFileHandle disk = Exports.CreateFile(partition.Hdd.DeviceId,
                             (uint)FileAccess.Read,
                             (uint)FileShare.None,
                             IntPtr.Zero,
@@ -176,7 +178,7 @@ namespace FATExplorer
                             IntPtr.Zero);
 
             //Wrap handle in extended FileStream
-            PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+            //PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
 
             //Hand off FileStream to workhorse
             partition.ParseDirectoryEntries(disk);
