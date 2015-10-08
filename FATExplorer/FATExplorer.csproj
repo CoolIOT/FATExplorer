@@ -65,10 +65,9 @@
     <Compile Include="Disk\Partition.cs" />
     <Compile Include="Disk\MBR\PartitionTable.cs" />
     <Compile Include="Disk\MBR\PartitionTableEntry.cs" />
-    <Compile Include="Utility\PreciseFileStream.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Utility\SectorlessFileStream.cs" />
+    <Compile Include="Utility\BufferedDiskReader.cs" />
     <EmbeddedResource Include="FATExplorer.resx">
       <DependentUpon>FATExplorer.cs</DependentUpon>
     </EmbeddedResource>

@@ -74,7 +74,7 @@ namespace FATExplorer
                 //                                Exports.FILE_FLAG_NO_BUFFERING,
                 //                                IntPtr.Zero);
 
-                SectorlessFileStream disk = new SectorlessFileStream(hdd.DeviceId);
+                BufferedDiskReader disk = new BufferedDiskReader(hdd.DeviceId);
 
                 //Occurs when in use or insufficient privileges
                 if (disk.IsInvalid)
@@ -94,8 +94,7 @@ namespace FATExplorer
                 byte[] data = new byte[512];
 
                 //Fill Buffer
-                //disk.Read(data, 0, 512);
-                Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
+                disk.Read(data, 0, 512);
 
                 //Deserialize data into MasterBootRecord
                 hdd.MBR = new MasterBootRecord(data);
@@ -107,12 +106,11 @@ namespace FATExplorer
                     data = new byte[512];
 
                     //Seek to Partition start (FAT32 boot sector, location given in Partition table entry in Sectors)
-                    //disk.Seek((long)entry.LBA_Begin1 * BYTES_PER_SECTOR, SeekOrigin.Begin);
-                    uint value = Exports.Seek(disk, (ulong)entry.LBA_Begin1 * BYTES_PER_SECTOR, Exports.EMoveMethod.Begin);
+                    disk.SeekAbsolute((ulong)entry.LBA_Begin1 * BYTES_PER_SECTOR);
 
                     //Read FAT32 BootSector - Volume Info
-                    //disk.Read(data, 0, data.Length);
-                    Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
+                    disk.Read(data, 0, data.Length);
+
                     //Deserialize data into Partition object
                     hdd.Partitions.Add(new Partition(data, hdd, entry));                    
                 }
@@ -172,13 +170,15 @@ namespace FATExplorer
         private void parseDirectoryTree(Partition partition)
         {        
             //Create handle
-            SafeFileHandle disk = Exports.CreateFile(partition.Hdd.DeviceId,
-                            (uint)FileAccess.Read,
-                            (uint)FileShare.None,
-                            IntPtr.Zero,
-                            (uint)FileMode.Open,
-                            Exports.FILE_FLAG_NO_BUFFERING,
-                            IntPtr.Zero);
+            //SafeFileHandle handle = Exports.CreateFile(partition.Hdd.DeviceId,
+            //                (uint)FileAccess.Read,
+            //                (uint)FileShare.None,
+            //                IntPtr.Zero,
+            //                (uint)FileMode.Open,
+            //                Exports.FILE_FLAG_NO_BUFFERING,
+            //                IntPtr.Zero);
+
+            BufferedDiskReader disk = new BufferedDiskReader(partition.Hdd.DeviceId);
 
             if (disk.IsInvalid)
             {

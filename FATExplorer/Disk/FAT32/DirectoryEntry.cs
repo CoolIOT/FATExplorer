@@ -1,4 +1,5 @@
-﻿using Microsoft.Win32.SafeHandles;
+﻿using FATExplorer.Utility;
+using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,7 +15,7 @@ namespace FATExplorer
          * CTOR - Creates current entry data's node then attaches any children, recurses into children directories
          * **NOTE** Individual values are Little-Endian on disk, except strings **NOTE**
          */
-        public DirectoryEntry(byte[] data, SafeFileHandle disk, Partition partition)
+        public DirectoryEntry(byte[] data, BufferedDiskReader disk, Partition partition)
         {
             //Attribute byte
             attributeByte = data[0x0B];
@@ -43,8 +44,7 @@ namespace FATExplorer
                 longFilename = parseLongFilename(data, disk);
 
                 //Read next entry after long file name
-                //disk.Read(data, 0, data.Length);
-                Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
+                disk.Read(data, 0, data.Length);
 
                 //Get new attribute byte
                 attributeByte = data[0x0B];
@@ -80,18 +80,15 @@ namespace FATExplorer
                 children = new List<DirectoryEntry>();
 
                 //Save old position for recursion
-                //long oldPos = disk.PrecisePosition;
-                ulong oldPos = Exports.Seek(disk, 0, Exports.EMoveMethod.Current);
+                ulong oldPos = disk.Position;
 
                 //If this is directory seek to directory entry location
                 if (isDirectory)
                 {
-                    //disk.Seek(firstClusterLBA * partition.BootSector.BPB.BytesPerSector, SeekOrigin.Begin);
-                    Exports.Seek(disk, firstClusterLBA * partition.BootSector.BPB.BytesPerSector, Exports.EMoveMethod.Begin);
+                    disk.SeekAbsolute(firstClusterLBA * partition.BootSector.BPB.BytesPerSector);
                 }
                 //Read next entry
-                //disk.Read(data, 0, data.Length);
-                Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
+                disk.Read(data, 0, data.Length);
 
                 //Recurse on next entry bytes
                 DirectoryEntry entry = new DirectoryEntry(data, disk, partition);
@@ -105,22 +102,20 @@ namespace FATExplorer
                         children.Add(entry);
                     }
                     //Read new bytes
-                    //disk.Read(data, 0, data.Length);
-                    Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
+                    disk.Read(data, 0, data.Length);
 
                     //Recurse on next entry bytes
                     entry = new DirectoryEntry(data, disk, partition);
                 }
                 //Seek to start Pos since we're going back up a level
-                //disk.Seek(oldPos, SeekOrigin.Begin);
-                Exports.Seek(disk, oldPos, Exports.EMoveMethod.Begin);
+                disk.SeekAbsolute(oldPos);
             }
         }
 
         /*
          * parseLongFilename - Parses long file name of one or more entries with FileStream and first entry bytes
          */
-        private string parseLongFilename(byte[] data, SafeFileHandle disk)
+        private string parseLongFilename(byte[] data, BufferedDiskReader disk)
         {
             string result = "";
             //Parse first entry bytes
@@ -136,11 +131,11 @@ namespace FATExplorer
             for (int i = 0; i < sequenceNumber - 1; i++)
             {
                 //Read next entry
-                //disk.Read(data, 0, data.Length);
-                Exports.Read(disk, data, (uint)data.Length, IntPtr.Zero);
+                disk.Read(data, 0, data.Length);
 
                 //Parse entry bytes
                 entry = new LongFilenameEntry(data);
+
                 //Add to result - they are in reverse order
                 result = entry.FilenamePart + result;
             }

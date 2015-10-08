@@ -3,12 +3,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace FATExplorer.Utility
 {
-    public class SectorlessFileStream
+    public class BufferedDiskReader
     {
         private const uint bytesPerSector = 512;
 
@@ -22,7 +23,9 @@ namespace FATExplorer.Utility
 
         private int bufferSector;
 
-        public SectorlessFileStream(string filename)
+        private uint bytesRead;
+
+        public BufferedDiskReader(string filename)
         {
             hFile = Exports.CreateFile(filename,
                                         (uint)FileAccess.Read,
@@ -32,7 +35,9 @@ namespace FATExplorer.Utility
                                         Exports.FILE_FLAG_NO_BUFFERING,
                                         IntPtr.Zero);
             buffer = new byte[bytesPerSector];
-            bufferSector = -1;
+            Exports.ReadFile(hFile, buffer, (uint)buffer.Length, ref bytesRead, IntPtr.Zero);
+            bufferSector = 0;
+
             currentPos = 0;
         }
 
@@ -44,34 +49,33 @@ namespace FATExplorer.Utility
             }
         }
 
-        public long Position
+        public ulong Position
         {
             get
             {
-                return currentPos;
+                return (ulong)absolutePos;
             }
         }
 
-        public uint Read(byte[] data, uint index, uint length)
+        public int Read(byte[] data, uint index, int length)
         {
-            uint bytesRead = 0;
-            int copyIndex = 0;
-
             //If read is in current buffer sector
-            if (bufferSector == ((currentPos + (length-1)) / bytesPerSector))
+            if (bufferSector == ((absolutePos + (length-1)) / bytesPerSector))
             {
                 Array.Copy(buffer, currentPos, data, 0, length);
                 currentPos += length;
+                absolutePos += length;
                 return length;
             }
 
             //If read crosses into next buffer sector
-            if (bufferSector < ((currentPos + (length-1)) / bytesPerSector))
+            if (bufferSector < ((absolutePos + (length-1)) / bytesPerSector))
             {
                 Array.Copy(buffer, currentPos, data, 0, buffer.Length - currentPos);
                 Exports.ReadFile(hFile, buffer, bytesPerSector, ref bytesRead, IntPtr.Zero);
                 Array.Copy(buffer, 0, data, buffer.Length - currentPos, length - (buffer.Length - currentPos));
                 currentPos = length % bytesPerSector;
+                absolutePos += length;
                 bufferSector++;
                 return length;
             }
@@ -87,10 +91,23 @@ namespace FATExplorer.Utility
                 int positionLow = (int)closestSector;
                 int positionHigh = (int)((closestSector & 0xFFFFFFFF00000000) >> 32);
                 res = Exports.SetFilePointer(hFile, positionLow, ref positionHigh, Exports.EMoveMethod.Begin);
+                uint confirmRes = Exports.SetFilePointer(hFile, 0, ref positionHigh, Exports.EMoveMethod.Current);
+                if (res != confirmRes)
+                {
+                    int value = Marshal.GetLastWin32Error();
+                    throw new Exception("RUH ROH");
+                }
+                bufferSector = (int)(closestSector / bytesPerSector);
+                Exports.ReadFile(hFile, buffer, (uint)buffer.Length, ref bytesRead, IntPtr.Zero);
             }
             currentPos = (long)(pos % bytesPerSector);
             absolutePos = (long)pos;
             return res;
+        }
+
+        public void Close()
+        {
+            hFile.Close();
         }
 
         public long SectorInBytes
@@ -99,14 +116,6 @@ namespace FATExplorer.Utility
             {
                 int x = 0;
                 return Exports.SetFilePointer(hFile, 0, ref x, Exports.EMoveMethod.Current);
-            }
-        }
-
-        public long Position
-        {
-            get
-            {
-                return currentPos;
             }
         }
     }
