@@ -1,7 +1,10 @@
-﻿using System;
+﻿using FATExplorer.Utility;
+using Microsoft.Win32.SafeHandles;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -28,25 +31,29 @@ namespace FATExplorer
         /*
          * ParseDirectoryEntries - Seeks disk to Directory Table start then begins recursive creation         * 
          */
-        public void ParseDirectoryEntries(PreciseFileStream disk)
+        public void ParseDirectoryEntries(BufferedDiskReader disk)
         {            
-            disk.Seek((long)this.clusterBeginLBA * BootSector.BPB.BytesPerSector, SeekOrigin.Current);
+            disk.SeekAbsolute((ulong)this.clusterBeginLBA * BootSector.BPB.BytesPerSector);
+
+            int error = Marshal.GetLastWin32Error();
 
             byte[] data = new byte[32];
             disk.Read(data, 0, data.Length);
+
             rootDirectory = new DirectoryEntry(data, disk, this);
         }
 
         /*
          * ReadFAT - Read FAT table 1 into memory
          */
-        public void ReadFAT(PreciseFileStream disk)
+        public void ReadFAT(BufferedDiskReader disk)
         {
             byte[] fatBytes = new byte[(bootSector.BPB.SectorsPerFAT32 * bootSector.BPB.BytesPerSector)];
             uint[] FAT = new uint[fatBytes.Length / 4];
 
-            disk.Seek((long)(bootSector.BPB.BytesPerSector * clusterBeginLBA), SeekOrigin.Begin);
+            disk.SeekAbsolute((ulong)(bootSector.BPB.BytesPerSector * clusterBeginLBA));
             disk.Read(fatBytes, 0, fatBytes.Length);
+
 
             for (int i = 0; i < FAT.Length; i++)
             {

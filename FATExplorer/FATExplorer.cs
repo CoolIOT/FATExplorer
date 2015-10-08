@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using System.Management;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using FATExplorer.Utility;
 
 namespace FATExplorer
 {
@@ -65,16 +66,18 @@ namespace FATExplorer
                 hdd.DeviceId = wmi_HD["DeviceId"].ToString();
 
                 //Kernel32 CreateFile 
-                SafeFileHandle handle = Exports.CreateFile(hdd.DeviceId,
-                                                (uint)FileAccess.Read,
-                                                (uint)FileShare.None,
-                                                IntPtr.Zero,
-                                                (uint)FileMode.Open,
-                                                Exports.FILE_FLAG_NO_BUFFERING,
-                                                IntPtr.Zero);
+                //SafeFileHandle disk = Exports.CreateFile(hdd.DeviceId,
+                //                                (uint)FileAccess.Read,
+                //                                (uint)FileShare.None,
+                //                                IntPtr.Zero,
+                //                                (uint)FileMode.Open,
+                //                                Exports.FILE_FLAG_NO_BUFFERING,
+                //                                IntPtr.Zero);
+
+                BufferedDiskReader disk = new BufferedDiskReader(hdd.DeviceId);
 
                 //Occurs when in use or insufficient privileges
-                if (handle.IsInvalid)
+                if (disk.IsInvalid)
                 {
                     int error = Marshal.GetLastWin32Error();
                     MessageBox.Show(this, "Please verify you have Administrator Privileges and disks are not in use.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Stop);
@@ -85,7 +88,7 @@ namespace FATExplorer
                 disks.Add(hdd);
 
                 //Create extended FileStream from disk handle
-                PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+                //PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
 
                 //Sector buffer
                 byte[] data = new byte[512];
@@ -103,7 +106,7 @@ namespace FATExplorer
                     data = new byte[512];
 
                     //Seek to Partition start (FAT32 boot sector, location given in Partition table entry in Sectors)
-                    disk.Seek((long)entry.LBA_Begin1 * BYTES_PER_SECTOR, SeekOrigin.Begin);
+                    disk.SeekAbsolute((ulong)entry.LBA_Begin1 * BYTES_PER_SECTOR);
 
                     //Read FAT32 BootSector - Volume Info
                     disk.Read(data, 0, data.Length);
@@ -167,16 +170,23 @@ namespace FATExplorer
         private void parseDirectoryTree(Partition partition)
         {        
             //Create handle
-            SafeFileHandle handle = Exports.CreateFile(partition.Hdd.DeviceId,
-                            (uint)FileAccess.Read,
-                            (uint)FileShare.None,
-                            IntPtr.Zero,
-                            (uint)FileMode.Open,
-                            Exports.FILE_FLAG_NO_BUFFERING,
-                            IntPtr.Zero);
+            //SafeFileHandle handle = Exports.CreateFile(partition.Hdd.DeviceId,
+            //                (uint)FileAccess.Read,
+            //                (uint)FileShare.None,
+            //                IntPtr.Zero,
+            //                (uint)FileMode.Open,
+            //                Exports.FILE_FLAG_NO_BUFFERING,
+            //                IntPtr.Zero);
 
+            BufferedDiskReader disk = new BufferedDiskReader(partition.Hdd.DeviceId);
+
+            if (disk.IsInvalid)
+            {
+                MessageBox.Show(String.Format("Error Opening Partition "));
+                return;
+            }
             //Wrap handle in extended FileStream
-            PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+            //PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
 
             //Hand off FileStream to workhorse
             partition.ParseDirectoryEntries(disk);

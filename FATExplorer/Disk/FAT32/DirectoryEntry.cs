@@ -1,4 +1,6 @@
-﻿using System;
+﻿using FATExplorer.Utility;
+using Microsoft.Win32.SafeHandles;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -13,7 +15,7 @@ namespace FATExplorer
          * CTOR - Creates current entry data's node then attaches any children, recurses into children directories
          * **NOTE** Individual values are Little-Endian on disk, except strings **NOTE**
          */
-        public DirectoryEntry(byte[] data, PreciseFileStream disk, Partition partition)
+        public DirectoryEntry(byte[] data, BufferedDiskReader disk, Partition partition)
         {
             //Attribute byte
             attributeByte = data[0x0B];
@@ -78,12 +80,12 @@ namespace FATExplorer
                 children = new List<DirectoryEntry>();
 
                 //Save old position for recursion
-                long oldPos = disk.PrecisePosition;
+                ulong oldPos = disk.Position;
 
                 //If this is directory seek to directory entry location
                 if (isDirectory)
                 {
-                    disk.Seek(firstClusterLBA * partition.BootSector.BPB.BytesPerSector, SeekOrigin.Begin);
+                    disk.SeekAbsolute(firstClusterLBA * partition.BootSector.BPB.BytesPerSector);
                 }
                 //Read next entry
                 disk.Read(data, 0, data.Length);
@@ -101,18 +103,19 @@ namespace FATExplorer
                     }
                     //Read new bytes
                     disk.Read(data, 0, data.Length);
+
                     //Recurse on next entry bytes
                     entry = new DirectoryEntry(data, disk, partition);
                 }
                 //Seek to start Pos since we're going back up a level
-                disk.Seek(oldPos, SeekOrigin.Begin);
+                disk.SeekAbsolute(oldPos);
             }
         }
 
         /*
          * parseLongFilename - Parses long file name of one or more entries with FileStream and first entry bytes
          */
-        private string parseLongFilename(byte[] data, FileStream disk)
+        private string parseLongFilename(byte[] data, BufferedDiskReader disk)
         {
             string result = "";
             //Parse first entry bytes
@@ -129,8 +132,10 @@ namespace FATExplorer
             {
                 //Read next entry
                 disk.Read(data, 0, data.Length);
+
                 //Parse entry bytes
                 entry = new LongFilenameEntry(data);
+
                 //Add to result - they are in reverse order
                 result = entry.FilenamePart + result;
             }

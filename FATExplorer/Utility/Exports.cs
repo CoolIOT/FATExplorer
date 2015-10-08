@@ -10,6 +10,8 @@ namespace FATExplorer
 {
     public static class Exports
     {
+        public const int BYTES_PER_SECTOR = 512;
+
         [DllImport("kernel32.dll", CharSet = CharSet.Auto,
         CallingConvention = CallingConvention.StdCall,
         SetLastError = true)]
@@ -24,9 +26,11 @@ namespace FATExplorer
         );
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        static extern bool ReadFile(IntPtr hFile, [Out] byte[] lpBuffer,
-             uint nNumberOfBytesToRead, 
-            out uint lpNumberOfBytesRead, 
+        public static extern bool ReadFile(
+            SafeFileHandle hFile, 
+            [Out] byte[] lpBuffer,
+            uint nNumberOfBytesToRead, 
+            ref uint lpNumberOfBytesRead, 
             IntPtr lpOverlapped);
 
         public enum EMoveMethod : uint
@@ -37,12 +41,11 @@ namespace FATExplorer
         }
 
         [DllImport("kernel32.dll", EntryPoint = "SetFilePointer")]
-        static extern uint SetFilePointer(
+        public static extern uint SetFilePointer(
               [In] Microsoft.Win32.SafeHandles.SafeFileHandle hFile,
               [In] int lDistanceToMove,
               [In, Out] ref int lpDistanceToMoveHigh,
               [In] EMoveMethod dwMoveMethod);
-
 
 
         public const int FILE_FLAG_NO_BUFFERING = 0x20000000;
