@@ -11,6 +11,7 @@ using System.Windows.Forms;
 using System.Management;
 using System.Runtime.InteropServices;
 using Microsoft.Win32.SafeHandles;
+using FATExplorer.Utility;
 
 namespace FATExplorer
 {
@@ -65,13 +66,15 @@ namespace FATExplorer
                 hdd.DeviceId = wmi_HD["DeviceId"].ToString();
 
                 //Kernel32 CreateFile 
-                SafeFileHandle disk = Exports.CreateFile(hdd.DeviceId,
-                                                (uint)FileAccess.Read,
-                                                (uint)FileShare.None,
-                                                IntPtr.Zero,
-                                                (uint)FileMode.Open,
-                                                Exports.FILE_FLAG_NO_BUFFERING,
-                                                IntPtr.Zero);
+                //SafeFileHandle disk = Exports.CreateFile(hdd.DeviceId,
+                //                                (uint)FileAccess.Read,
+                //                                (uint)FileShare.None,
+                //                                IntPtr.Zero,
+                //                                (uint)FileMode.Open,
+                //                                Exports.FILE_FLAG_NO_BUFFERING,
+                //                                IntPtr.Zero);
+
+                SectorlessFileStream disk = new SectorlessFileStream(hdd.DeviceId);
 
                 //Occurs when in use or insufficient privileges
                 if (disk.IsInvalid)
@@ -105,7 +108,7 @@ namespace FATExplorer
 
                     //Seek to Partition start (FAT32 boot sector, location given in Partition table entry in Sectors)
                     //disk.Seek((long)entry.LBA_Begin1 * BYTES_PER_SECTOR, SeekOrigin.Begin);
-                    Exports.Seek(disk, (ulong)entry.LBA_Begin1 * BYTES_PER_SECTOR, Exports.EMoveMethod.Begin);
+                    uint value = Exports.Seek(disk, (ulong)entry.LBA_Begin1 * BYTES_PER_SECTOR, Exports.EMoveMethod.Begin);
 
                     //Read FAT32 BootSector - Volume Info
                     //disk.Read(data, 0, data.Length);
@@ -177,6 +180,11 @@ namespace FATExplorer
                             Exports.FILE_FLAG_NO_BUFFERING,
                             IntPtr.Zero);
 
+            if (disk.IsInvalid)
+            {
+                MessageBox.Show(String.Format("Error Opening Partition "));
+                return;
+            }
             //Wrap handle in extended FileStream
             //PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
 

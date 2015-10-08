@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -33,6 +34,8 @@ namespace FATExplorer
         {            
             //disk.Seek((long)this.clusterBeginLBA * BootSector.BPB.BytesPerSector, SeekOrigin.Begin);
             long value = Exports.Seek(disk, (ulong)this.clusterBeginLBA * bootSector.BPB.BytesPerSector, Exports.EMoveMethod.Begin);
+
+            int error = Marshal.GetLastWin32Error();
 
             byte[] data = new byte[32];
             //disk.Read(data, 0, data.Length);
