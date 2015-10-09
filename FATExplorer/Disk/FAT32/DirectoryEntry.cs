@@ -85,7 +85,8 @@ namespace FATExplorer
                 //If this is directory seek to directory entry location
                 if (isDirectory)
                 {
-                    disk.SeekAbsolute(firstClusterLBA * partition.BootSector.BPB.BytesPerSector);
+                    ulong firstClusterAddress = ((ulong)firstClusterLBA * (ulong)partition.BootSector.BPB.BytesPerSector);
+                    disk.SeekAbsolute(firstClusterAddress);
                 }
                 //Read next entry
                 disk.Read(data, 0, data.Length);
@@ -106,6 +107,10 @@ namespace FATExplorer
 
                     //Recurse on next entry bytes
                     entry = new DirectoryEntry(data, disk, partition);
+                    if (entry.ShortFilename != null && entry.ShortFilename.Contains("2014"))
+                    {
+                        entry = entry;
+                    }
                 }
                 //Seek to start Pos since we're going back up a level
                 disk.SeekAbsolute(oldPos);

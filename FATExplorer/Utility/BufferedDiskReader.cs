@@ -87,12 +87,13 @@ namespace FATExplorer.Utility
             ulong res = 0;
             if ((uint)(pos / bytesPerSector) != bufferSector)
             {
-                uint closestSector = (uint)((pos / bytesPerSector) * bytesPerSector);
+                ulong closestSector = ((pos / (ulong)bytesPerSector) * (ulong)bytesPerSector);
                 int positionLow = (int)closestSector;
                 int positionHigh = (int)((closestSector & 0xFFFFFFFF00000000) >> 32);
                 res = Exports.SetFilePointer(hFile, positionLow, ref positionHigh, Exports.EMoveMethod.Begin);
-                uint confirmRes = Exports.SetFilePointer(hFile, 0, ref positionHigh, Exports.EMoveMethod.Current);
-                if (res != confirmRes)
+                int confirmPositionHigh = 0;
+                ulong confirmRes = Exports.SetFilePointer(hFile, 0, ref confirmPositionHigh, Exports.EMoveMethod.Current);
+                if (((ulong)confirmPositionHigh << 32 | res) != ((ulong)positionHigh << 32 | confirmRes))
                 {
                     int value = Marshal.GetLastWin32Error();
                     throw new Exception("RUH ROH");
