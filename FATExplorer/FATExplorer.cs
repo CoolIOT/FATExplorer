@@ -144,6 +144,10 @@ namespace FATExplorer
                     AddNode(entry, node);
                 }
             }
+            else
+            {
+                node.Tag = directoryNode;
+            }
             return node;
         }
 
@@ -213,6 +217,22 @@ namespace FATExplorer
             treeViewDirectory.Nodes.Clear();
             treeViewDirectory.Nodes.Add(AddNode(partition.RootDirectory, null));
 
+        }
+
+        private void treeViewDirectory_NodeMouseDoubleClick(object sender, TreeNodeMouseClickEventArgs e)
+        {
+            if (e.Node.Tag is DirectoryEntry)
+            {
+                DirectoryEntry entry = e.Node.Tag as DirectoryEntry;
+                if (entry.IsDirectory || entry.IsVolumeID)
+                {
+                    return;
+                }
+                Partition partition = (comboBoxPartitions.SelectedItem as ComboBoxItem).Value as Partition;
+                BufferedDiskReader disk = new BufferedDiskReader(partition.Hdd.DeviceId);
+                byte[] fileBytes = partition.OpenFile(disk, entry);
+                string output = Encoding.ASCII.GetString(fileBytes);
+            }
         }
 
     }

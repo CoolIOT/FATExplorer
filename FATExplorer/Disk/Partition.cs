@@ -12,6 +12,8 @@ namespace FATExplorer
 {
     public class Partition
     {
+        private uint[] FAT = null;
+
         /* 
          * CTOR - Creates FATBootSector and Calculates Partition Cluster Start LBA
          * 
@@ -41,7 +43,28 @@ namespace FATExplorer
             disk.Read(data, 0, data.Length);
 
             rootDirectory = new DirectoryEntry(data, disk, this);
+            if (!rootDirectory.IsVolumeID)
+            {
+                DirectoryEntry entry = rootDirectory;
+                rootDirectory = new DirectoryEntry();
+                rootDirectory.Children.Add(entry);
+                disk.Read(data, 0, data.Length);
+                entry = new DirectoryEntry(data, disk, this);
+                while (entry.Type != DirectoryEntryType.EndOfDirectory)
+                {
+                    if (entry.Type != DirectoryEntryType.Unused)
+                    {
+                        rootDirectory.Children.Add(entry);
+                    }
+                    disk.Read(data, 0, data.Length);
+                    entry = new DirectoryEntry(data, disk, this);
+                }
+            }
         }
+
+        private byte[] blankVolumeId = {
+            
+        };
 
         /*
          * ReadFAT - Read FAT table 1 into memory
@@ -49,7 +72,7 @@ namespace FATExplorer
         public void ReadFAT(BufferedDiskReader disk)
         {
             byte[] fatBytes = new byte[(bootSector.BPB.SectorsPerFAT32 * bootSector.BPB.BytesPerSector)];
-            uint[] FAT = new uint[fatBytes.Length / 4];
+            FAT = new uint[fatBytes.Length / 4];
 
             disk.SeekAbsolute((ulong)(bootSector.BPB.BytesPerSector * clusterBeginLBA));
             disk.Read(fatBytes, 0, fatBytes.Length);
@@ -59,6 +82,43 @@ namespace FATExplorer
             {
                 FAT[i] = (uint)(fatBytes[i * 4 + 0] << 24 | fatBytes[i * 4 + 1] << 16 | fatBytes[i * 4 + 2] << 8 | fatBytes[i * 4 + 3]);
             }
+        }
+
+        private long ReadNextFAT(uint index)
+        {
+            if (FAT == null || index >= FAT.Length || index < 0)
+            {
+                return -1;
+            }
+            return FAT[index];
+        }
+
+        public byte[] OpenFile(BufferedDiskReader disk, DirectoryEntry file)
+        {
+            if (file.IsDirectory)
+            {
+                return null;
+            }
+            byte[] data = ReadCluster(disk, file.FirstClusterLBA);
+            return data;
+
+        }
+
+        private byte[] ReadCluster(BufferedDiskReader disk, uint clusterLBA)
+        {
+            byte[] clusterBytes = new byte[(ulong)bootSector.BPB.BytesPerSector * (ulong)bootSector.BPB.SectorsPerCluster];
+
+            ulong clusterStartByte = (ulong)bootSector.BPB.BytesPerSector * (ulong)clusterLBA;
+
+            disk.SeekAbsolute(clusterStartByte);
+
+            for (int i = 0; i < bootSector.BPB.SectorsPerCluster; i++)
+            {
+                byte[] data = new byte[bootSector.BPB.BytesPerSector];
+                disk.Read(data, 0, data.Length);
+                Array.Copy(data, 0, clusterBytes, i * bootSector.BPB.BytesPerSector, bootSector.BPB.BytesPerSector);
+            }
+            return clusterBytes;
         }
 
         #region Properties

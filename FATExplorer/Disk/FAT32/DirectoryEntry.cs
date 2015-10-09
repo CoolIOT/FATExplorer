@@ -11,6 +11,19 @@ namespace FATExplorer
 {
     public class DirectoryEntry
     {
+
+        /*
+         * CTOR - Creates dummy root node when volume id is missing
+         * 
+         */
+        public DirectoryEntry()
+        {
+            shortFilename = "ROOT";
+            longFilename = "Root";
+            IsVolumeID = true;
+            children = new List<DirectoryEntry>();
+        }
+
         /*
          * CTOR - Creates current entry data's node then attaches any children, recurses into children directories
          * **NOTE** Individual values are Little-Endian on disk, except strings **NOTE**

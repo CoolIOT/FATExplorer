@@ -40,6 +40,7 @@
             this.treeViewDirectory.Name = "treeViewDirectory";
             this.treeViewDirectory.Size = new System.Drawing.Size(577, 529);
             this.treeViewDirectory.TabIndex = 0;
+            this.treeViewDirectory.NodeMouseDoubleClick += new System.Windows.Forms.TreeNodeMouseClickEventHandler(this.treeViewDirectory_NodeMouseDoubleClick);
             // 
             // comboBoxPartitions
             // 
