@@ -14,6 +14,8 @@ namespace FATExplorer
     {
         private uint[] FAT = null;
 
+        private uint fatBeginLBA;
+
         /* 
          * CTOR - Creates FATBootSector and Calculates Partition Cluster Start LBA
          * 
@@ -25,6 +27,7 @@ namespace FATExplorer
                 bootSector = new FATBootSector(bootSectorBytes);
                 //Partition cluster starts immediately following both FAT's
                 clusterBeginLBA = entry.LBA_Begin1 + bootSector.BPB.ReservedSectors + (bootSector.BPB.NumOfFATs * bootSector.BPB.SectorsPerFAT32);
+                fatBeginLBA = entry.LBA_Begin1 + bootSector.BPB.ReservedSectors;
             }
             this.hdd = hdd;
             this.entry = entry;
@@ -74,23 +77,19 @@ namespace FATExplorer
             byte[] fatBytes = new byte[(bootSector.BPB.SectorsPerFAT32 * bootSector.BPB.BytesPerSector)];
             FAT = new uint[fatBytes.Length / 4];
 
-            disk.SeekAbsolute((ulong)(bootSector.BPB.BytesPerSector * clusterBeginLBA));
+            disk.SeekAbsolute((ulong)(bootSector.BPB.BytesPerSector * fatBeginLBA));
             disk.Read(fatBytes, 0, fatBytes.Length);
 
 
             for (int i = 0; i < FAT.Length; i++)
             {
-                FAT[i] = (uint)(fatBytes[i * 4 + 0] << 24 | fatBytes[i * 4 + 1] << 16 | fatBytes[i * 4 + 2] << 8 | fatBytes[i * 4 + 3]);
+                FAT[i] = (uint)(fatBytes[i * 4 + 3] << 24 | fatBytes[i * 4 + 2] << 16 | fatBytes[i * 4 + 1] << 8 | fatBytes[i * 4 + 0]);
             }
         }
 
-        private long ReadNextFAT(uint index)
-        {
-            if (FAT == null || index >= FAT.Length || index < 0)
-            {
-                return -1;
-            }
-            return FAT[index];
+        private uint ReadNextFAT(uint index)
+        {            
+            return 0x0FFFFFFF & FAT[index];
         }
 
         public byte[] OpenFile(BufferedDiskReader disk, DirectoryEntry file)
@@ -99,25 +98,45 @@ namespace FATExplorer
             {
                 return null;
             }
-            byte[] data = ReadCluster(disk, file.FirstClusterLBA);
+            if (FAT == null)
+            {
+                ReadFAT(disk);
+            }
+            byte[] data = ReadCluster(disk, file.FirstCluster);
+            uint nextCluster = ReadNextFAT(file.FirstCluster);
+            uint clusterCount = 1;
+            while (nextCluster < 0x0FFFFFF8)
+            {
+                clusterCount++;
+                byte[] temp = ReadCluster(disk, nextCluster);
+                byte[] tempData = data;
+                data = new byte[clusterCount * temp.Length];
+                Array.Copy(tempData, 0, data, 0, tempData.Length);
+                Array.Copy(temp, 0, data, tempData.Length, temp.Length);
+                nextCluster = ReadNextFAT(nextCluster);
+            }
             return data;
 
         }
 
-        private byte[] ReadCluster(BufferedDiskReader disk, uint clusterLBA)
+        private byte[] ReadCluster(BufferedDiskReader disk, uint cluster)
         {
             byte[] clusterBytes = new byte[(ulong)bootSector.BPB.BytesPerSector * (ulong)bootSector.BPB.SectorsPerCluster];
+
+            //Calculate LBA for first cluster
+            uint clusterLBA = (uint)(ClusterBeginLBA + (cluster - 2) * BootSector.BPB.SectorsPerCluster);
 
             ulong clusterStartByte = (ulong)bootSector.BPB.BytesPerSector * (ulong)clusterLBA;
 
             disk.SeekAbsolute(clusterStartByte);
 
-            for (int i = 0; i < bootSector.BPB.SectorsPerCluster; i++)
-            {
-                byte[] data = new byte[bootSector.BPB.BytesPerSector];
-                disk.Read(data, 0, data.Length);
-                Array.Copy(data, 0, clusterBytes, i * bootSector.BPB.BytesPerSector, bootSector.BPB.BytesPerSector);
-            }
+            //for (int i = 0; i < bootSector.BPB.SectorsPerCluster; i++)
+            //{
+            //    byte[] data = new byte[bootSector.BPB.BytesPerSector];
+            //    disk.Read(data, 0, data.Length);
+            //    Array.Copy(data, 0, clusterBytes, i * bootSector.BPB.BytesPerSector, bootSector.BPB.BytesPerSector);
+            //}
+            disk.Read(clusterBytes, 0, clusterBytes.Length);
             return clusterBytes;
         }
 

@@ -13,6 +13,8 @@ namespace FATExplorer.Utility
     {
         private const uint bytesPerSector = 512;
 
+        private string filename;
+
         private SafeFileHandle hFile;
 
         private byte[] buffer;
@@ -27,7 +29,8 @@ namespace FATExplorer.Utility
 
         public BufferedDiskReader(string filename)
         {
-            hFile = Exports.CreateFile(filename,
+            this.filename = filename;
+            hFile = Exports.CreateFile(this.filename,
                                         (uint)FileAccess.Read,
                                         (uint)FileShare.None,
                                         IntPtr.Zero,
@@ -59,6 +62,33 @@ namespace FATExplorer.Utility
 
         public int Read(byte[] data, uint index, int length)
         {
+            if (length > bytesPerSector)
+            {
+                uint fixedLength;
+
+                //Copy remaining bytes in current sector buffer
+                Array.Copy(buffer, 0, data, 0, (buffer.Length) - currentPos);
+                
+                //Calculate remaining bytes to be read
+                uint bytesToRead = (uint)(length - ((buffer.Length) - currentPos));
+
+                //Check whether it ends on a sector boundary
+                if (bytesToRead % bytesPerSector != 0)
+                {
+                    //Calculate next sector boundary in bytes
+                    fixedLength = (((uint)bytesToRead / bytesPerSector) + 1) * bytesPerSector;
+                }
+                else
+                {
+                    fixedLength = (uint)bytesToRead;
+                }
+                byte[] temp = new byte[fixedLength];
+                Exports.ReadFile(hFile, temp, fixedLength, ref bytesRead, IntPtr.Zero);
+                Array.Copy(temp, 0, data, (buffer.Length) - currentPos, bytesToRead);
+                SeekAbsolute((ulong)(((absolutePos + length) / bytesPerSector) * bytesPerSector));
+                return length;
+            }
+
             //If read is in current buffer sector
             if (bufferSector == ((absolutePos + (length-1)) / bytesPerSector))
             {

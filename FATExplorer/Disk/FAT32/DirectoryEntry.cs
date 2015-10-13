@@ -82,7 +82,7 @@ namespace FATExplorer
             shortFilename = Encoding.ASCII.GetString(shortNameBytes);
 
             //First cluster of entry - Little-Endian
-            uint firstCluster = (uint)(data[0x15] << 24 | data[0x14] << 16 | data[0x1B] << 8 | data[0x1A]);
+            firstCluster = (uint)(data[0x15] << 24 | data[0x14] << 16 | data[0x1B] << 8 | data[0x1A]);
 
             //Calculate LBA for first cluster
             firstClusterLBA = (uint)(partition.ClusterBeginLBA + (firstCluster - 2) * partition.BootSector.BPB.SectorsPerCluster);
@@ -212,6 +212,14 @@ namespace FATExplorer
         }
 
         private byte attributeByte;
+
+        private uint firstCluster;
+
+        public uint FirstCluster
+        {
+            get { return firstCluster; }
+            set { firstCluster = value; }
+        }
 
         private uint firstClusterLBA;
 

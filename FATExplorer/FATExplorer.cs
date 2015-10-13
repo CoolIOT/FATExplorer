@@ -65,15 +65,6 @@ namespace FATExplorer
                 hdd.Type = wmi_HD["InterfaceType"] == null ? "" : wmi_HD["InterfaceType"].ToString();
                 hdd.DeviceId = wmi_HD["DeviceId"].ToString();
 
-                //Kernel32 CreateFile 
-                //SafeFileHandle disk = Exports.CreateFile(hdd.DeviceId,
-                //                                (uint)FileAccess.Read,
-                //                                (uint)FileShare.None,
-                //                                IntPtr.Zero,
-                //                                (uint)FileMode.Open,
-                //                                Exports.FILE_FLAG_NO_BUFFERING,
-                //                                IntPtr.Zero);
-
                 BufferedDiskReader disk = new BufferedDiskReader(hdd.DeviceId);
 
                 //Occurs when in use or insufficient privileges
@@ -85,10 +76,7 @@ namespace FATExplorer
                 }
 
                 //HDD is valid, add to our list
-                disks.Add(hdd);
-
-                //Create extended FileStream from disk handle
-                //PreciseFileStream disk = new PreciseFileStream(handle, FileAccess.Read);
+                disks.Add(hdd); 
 
                 //Sector buffer
                 byte[] data = new byte[512];
@@ -231,7 +219,10 @@ namespace FATExplorer
                 Partition partition = (comboBoxPartitions.SelectedItem as ComboBoxItem).Value as Partition;
                 BufferedDiskReader disk = new BufferedDiskReader(partition.Hdd.DeviceId);
                 byte[] fileBytes = partition.OpenFile(disk, entry);
-                string output = Encoding.ASCII.GetString(fileBytes);
+                disk.Close();
+                string output = Encoding.UTF8.GetString(fileBytes);
+                Editor editor = new Editor(output);
+                editor.Show();
             }
         }
 
